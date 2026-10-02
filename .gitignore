@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.idea/
+.vscode/
+# your own captured data (keep folder structure via .gitkeep)
+data/calibration_images/*
+data/captured_undistorted/*
+data/calibration_results/*
+!data/**/.gitkeep
