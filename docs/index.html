@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webcam Calibration with OpenCV and ChArUco | Vihaan Gupta</title>
+<meta name="description" content="Calibrate any webcam with OpenCV and a ChArUco board. Explanation of the method, comparison of calibration targets, and a clone-and-run toolkit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--soft:#f6f8fa;--text:#1f2933;--muted:#5b6770;--line:#e1e5ea;--accent:#1d4ed8;--code:#0f172a;--codetext:#e2e8f0}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.7;font-size:17px}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line)}
+.bar{max-width:900px;margin:auto;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bar a{color:var(--text);text-decoration:none;font-weight:600;font-size:15px}
+.bar a:hover{color:var(--accent)}
+main{max-width:900px;margin:auto;padding:32px 20px 60px}
+h1{font-size:2.1rem;line-height:1.25;margin:.2em 0}
+h2{font-size:1.5rem;margin:2.2em 0 .6em;padding-bottom:.3em;border-bottom:1px solid var(--line)}
+h3{font-size:1.15rem;margin:1.6em 0 .4em}
+p.lead{color:var(--muted);font-size:1.1rem}
+.meta{color:var(--muted);font-size:14px}
+a{color:var(--accent)}
+code{font-family:"JetBrains Mono",Consolas,monospace;font-size:.88em;background:var(--soft);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.cb{position:relative;margin:14px 0}
+pre{margin:0;background:var(--code);color:var(--codetext);padding:16px 18px;border-radius:8px;overflow-x:auto;font-family:"JetBrains Mono",Consolas,monospace;font-size:14px;line-height:1.55}
+pre.diagram{background:var(--soft);color:var(--text);border:1px solid var(--line);margin:16px 0;font-size:13px}
+.cb button{position:absolute;top:8px;right:8px;background:#334155;color:#e2e8f0;border:0;border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer}
+.cb button:hover{background:#475569}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.btn{display:inline-block;padding:9px 18px;border-radius:6px;font-weight:600;font-size:15px;text-decoration:none;border:1px solid var(--accent)}
+.btn.p{background:var(--accent);color:#fff}
+.btn.s{color:var(--accent);background:#fff}
+.btn:hover{opacity:.88}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:18px 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--soft)}
+.steps li::before{content:counter(s);display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;border-radius:50%;background:var(--accent);color:#fff;font-weight:600;font-size:14px;margin-bottom:6px}
+.steps strong{display:block}
+.steps span{font-size:15px;color:var(--muted)}
+.note,.warn{padding:12px 16px;border-radius:6px;margin:16px 0;border-left:4px solid var(--accent);background:#eff4ff}
+.warn{border-color:#b45309;background:#fff7ed}
+table{border-collapse:collapse;width:100%;font-size:15px;margin:14px 0;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+nav.toc{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:14px 22px;margin:22px 0}
+nav.toc ol{margin:6px 0 0;padding-left:20px}
+footer{border-top:1px solid var(--line);padding:24px 20px;text-align:center;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <a href="https://vihaan30g.github.io/">&larr; All Projects</a>
+  <a href="https://github.com/Vihaan30g/webcam-calibration-opencv">View on GitHub</a>
+</div></header>
+
+<main>
+<p class="meta">Computer Vision &middot; OpenCV &middot; Python &middot; Last updated: October 2026</p>
+<h1>Webcam Calibration with OpenCV and a ChArUco Board</h1>
+<p class="lead">What camera calibration is, how it works, which calibration targets exist, and a ready-to-use toolkit that calibrates any webcam in about 15 minutes.</p>
+<div class="btns">
+  <a class="btn p" href="https://github.com/Vihaan30g/webcam-calibration-opencv">Get the code on GitHub</a>
+  <a class="btn s" href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/troubleshooting.md">Troubleshooting</a>
+</div>
+
+<nav class="toc"><strong>Contents</strong>
+<ol>
+<li><a href="#why">Why calibrate a camera?</a></li>
+<li><a href="#model">The camera model</a></li>
+<li><a href="#distortion">Lens distortion</a></li>
+<li><a href="#how">How calibration works</a></li>
+<li><a href="#targets">Calibration targets compared</a></li>
+<li><a href="#toolkit">The toolkit: workflow</a></li>
+<li><a href="#quick">Quick start</a></li>
+<li><a href="#results">Reading the results</a></li>
+<li><a href="#use">Using the calibration</a></li>
+<li><a href="#limits">Limits and next steps</a></li>
+</ol></nav>
+
+<h2 id="why">1. Why calibrate a camera?</h2>
+<p>A camera turns 3D rays into 2D pixels, but two things distort that mapping:</p>
+<ul>
+<li><strong>Intrinsics:</strong> the focal length and optical centre, which define how 3D points land on the image.</li>
+<li><strong>Lens distortion:</strong> real lenses bend straight lines, especially near the image edges.</li>
+</ul>
+<p>Anything that measures from images (distances, angles, marker pose, visual odometry, SLAM, 3D reconstruction) is biased until these are known. Calibration estimates them once per camera, resolution and focus setting.</p>
+
+<h2 id="model">2. The camera model</h2>
+<p>OpenCV uses the <strong>pinhole model</strong>. A 3D point <code>(X, Y, Z)</code> in the camera frame projects to pixel <code>(u, v)</code>:</p>
+<div class="cb"><pre>u = fx * (X / Z) + cx
+v = fy * (Y / Z) + cy
+
+    | fx  0  cx |
+K = |  0 fy  cy |     (camera matrix)
+    |  0  0   1 |</pre></div>
+<table>
+<tr><th>Parameter</th><th>Meaning</th></tr>
+<tr><td><code>fx</code>, <code>fy</code></td><td>Focal length in <strong>pixels</strong>. Usually almost equal.</td></tr>
+<tr><td><code>cx</code>, <code>cy</code></td><td>Principal point, where the optical axis meets the image. Near the image centre.</td></tr>
+</table>
+<p>Each image of the calibration board also has its own <strong>extrinsics</strong> (rotation and translation of the board relative to the camera). They are solved during calibration but are not needed afterwards. Only <code>K</code> and the distortion coefficients are kept.</p>
+
+<h2 id="distortion">3. Lens distortion</h2>
+<p>With normalised coordinates <code>x = X/Z</code>, <code>y = Y/Z</code> and <code>r&sup2; = x&sup2; + y&sup2;</code>:</p>
+<div class="cb"><pre># radial: straight lines bow outward (barrel) or inward (pincushion)
+x_d = x * (1 + k1*r^2 + k2*r^4 + k3*r^6)
+y_d = y * (1 + k1*r^2 + k2*r^4 + k3*r^6)
+
+# tangential: lens not perfectly parallel to the sensor
+x_d = x + 2*p1*x*y + p2*(r^2 + 2*x^2)
+y_d = y + p1*(r^2 + 2*y^2) + 2*p2*x*y</pre></div>
+<p>OpenCV returns <code>[k1, k2, p1, p2, k3]</code>. On typical webcams <code>k1</code> is negative (barrel distortion) and <code>p1</code>, <code>p2</code> are close to zero.</p>
+
+<h2 id="how">4. How calibration works</h2>
+<p>OpenCV implements <strong>Zhang's method</strong>:</p>
+<ol>
+<li>Show the camera a <strong>flat target with known geometry</strong> from many viewpoints.</li>
+<li>Detect the target's corners in each image. Their 3D positions on the board are known (the board plane is <code>Z = 0</code>, and the spacing is the printed square size).</li>
+<li>Each view gives a homography from the board plane to the image, which constrains <code>K</code>. Three or more different orientations let <code>K</code> be solved in closed form.</li>
+<li>That gives an initial guess for <code>K</code>, the distortion, and every view's pose.</li>
+<li>Everything is refined together with non-linear least squares (Levenberg-Marquardt), minimising the <strong>reprojection error</strong>: the pixel distance between detected corners and the corners obtained by projecting the known 3D points through the current model.</li>
+</ol>
+<div class="note"><strong>Why many angles?</strong> If every view is frontal, focal length and distance are ambiguous. Tilted views remove the ambiguity, and views that reach the image corners are what constrain distortion.</div>
+
+<h2 id="targets">5. Calibration targets compared</h2>
+<table>
+<tr><th>Target</th><th>Pros</th><th>Cons</th></tr>
+<tr><td><strong>Checkerboard</strong></td><td>Simple, accurate sub-pixel corners, built into OpenCV</td><td>Whole board must be visible in every image, so edges are poorly covered. No IDs, no partial views</td></tr>
+<tr><td><strong>Circle grid</strong></td><td>Accurate centres, tolerant of blur</td><td>Perspective bias on circle centres; needs the whole grid visible</td></tr>
+<tr><td><strong>ArUco board</strong></td><td>Unique IDs, works with partial views and occlusion</td><td>Marker corners are less accurate than checkerboard corners</td></tr>
+<tr><td><strong>ChArUco</strong> (used here)</td><td>Partial views allowed, every corner has an ID, sub-pixel accurate, robust to occlusion</td><td>Needs OpenCV contrib (aruco module)</td></tr>
+<tr><td><strong>AprilGrid</strong></td><td>Standard in Kalibr; great for multi-camera and camera-IMU setups</td><td>Needs separate tooling</td></tr>
+</table>
+<p><strong>Why ChArUco?</strong> Each corner carries an ID, so the board does not have to be fully in view. You can push it into the frame corners, which is where distortion information lives, and a hand or glare covering part of the board does no harm.</p>
+
+<h2 id="toolkit">6. The toolkit: workflow</h2>
+<p>The repository is driven by a single <code>config.py</code>. Every script reads it, so changing camera, resolution or board size only needs one edit.</p>
+<ol class="steps">
+<li><strong>Configure</strong><span>Set camera index, resolution and board size in <code>config.py</code>.</span></li>
+<li><strong>Generate the board</strong><span><code>generate_charuco.py</code> creates a PDF that prints at the exact square size.</span></li>
+<li><strong>Capture images</strong><span><code>capture_images.py</code> shows live corner detection and only saves good frames.</span></li>
+<li><strong>Calibrate</strong><span><code>calibrate.py</code> solves for <code>K</code> and distortion and reports the error per image.</span></li>
+<li><strong>Validate</strong><span><code>validate_calibration.py</code> shows original vs undistorted and detected vs reprojected corners.</span></li>
+<li><strong>Use it</strong><span><code>undistort.py</code> and <code>capture_undistorted.py</code> process images, folders, videos, or live camera.</span></li>
+</ol>
+
+<h2 id="quick">7. Quick start</h2>
+<div class="cb"><pre>git clone https://github.com/Vihaan30g/webcam-calibration-opencv.git
+cd webcam-calibration-opencv
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt
+
+python3 scripts/generate_charuco.py        # print data/boards/charuco_board.pdf at 100%
+python3 scripts/capture_images.py          # 's' to save, 'q' to quit
+python3 scripts/calibrate.py --visualize
+python3 scripts/validate_calibration.py --save</pre></div>
+<div class="warn"><strong>Print at 100% scale</strong> ("Actual size", never "fit to page"), mount the board on something rigid and flat, and measure one square with a ruler. If it is not 30 mm, update <code>SQUARE_LENGTH</code> and <code>MARKER_LENGTH</code> in <code>config.py</code>.</div>
+<h3>Capturing a good image set (25 to 40 images)</h3>
+<ul>
+<li>Cover every region of the frame, <strong>including the corners and edges</strong>.</li>
+<li>Tilt the board up to about 45 degrees in different directions.</li>
+<li>Vary the distance: near, medium and far.</li>
+<li>Hold still to avoid blur, and keep the lighting even.</li>
+<li>Do not change zoom or focus during the session. Lock autofocus if you can.</li>
+</ul>
+<p>Full step-by-step instructions are in the <a href="https://github.com/Vihaan30g/webcam-calibration-opencv#readme">repository README</a>.</p>
+
+<h2 id="results">8. Reading the results</h2>
+<table>
+<tr><th>RMS reprojection error</th><th>Quality</th></tr>
+<tr><td>&lt; 0.5 px</td><td>Excellent</td></tr>
+<tr><td>0.5 to 1.0 px</td><td>Good</td></tr>
+<tr><td>1.0 to 2.0 px</td><td>Acceptable</td></tr>
+<tr><td>&gt; 2.0 px</td><td>Recapture</td></tr>
+</table>
+<p>A low error alone does not prove accuracy, so also check:</p>
+<ul>
+<li><code>fx</code> and <code>fy</code> should be close to each other.</li>
+<li><code>cx</code>, <code>cy</code> should be near <code>width/2</code>, <code>height/2</code>.</li>
+<li>A very large <code>k3</code> (magnitude above about 5) suggests overfitting. Set <code>FIX_K3 = True</code> in <code>config.py</code>.</li>
+<li>In the validation window, straight lines should come out straight and the green and red points should overlap.</li>
+<li>Delete images with clearly higher per-image error and recalibrate.</li>
+</ul>
+
+<h2 id="use">9. Using the calibration</h2>
+<div class="cb"><pre>import cv2, numpy as np, yaml
+
+with open("data/calibration_results/calibration.yaml") as f:
+    cal = yaml.safe_load(f)
+
+K    = np.array(cal["camera_matrix"]["data"]).reshape(3, 3)
+dist = np.array(cal["distortion_coefficients"]["data"]).reshape(1, -1)
+size = (cal["image_width"], cal["image_height"])
+
+new_K, roi = cv2.getOptimalNewCameraMatrix(K, dist, size, alpha=0)
+map1, map2 = cv2.initUndistortRectifyMap(K, dist, None, new_K, size, cv2.CV_16SC2)
+
+und = cv2.remap(cv2.imread("my_image.png"), map1, map2, cv2.INTER_LINEAR)
+x, y, w, h = roi
+und = und[y:y+h, x:x+w]          # crop black borders</pre></div>
+<ul>
+<li><strong>Pose estimation</strong> (ArUco, AprilTag, <code>solvePnP</code>): use <code>K</code> and <code>dist</code> on raw images, or <code>new_K</code> with zero distortion on undistorted ones. Never undistort twice.</li>
+<li><strong>ROS 2 <code>CameraInfo</code>:</strong> <code>k</code> = the nine values of <code>K</code>, <code>d</code> = <code>[k1, k2, p1, p2, k3]</code>, <code>distortion_model</code> = <code>"plumb_bob"</code>.</li>
+<li><strong>Resolution:</strong> the calibration is valid only at the resolution it was captured at. The scripts check this and stop on a mismatch.</li>
+</ul>
+
+<h2 id="limits">10. Limits and next steps</h2>
+<ul>
+<li>Recalibrate if you change focus, zoom, resolution mode, or if the lens is knocked.</li>
+<li>Intrinsics do not depend on the true square size, but any metric distance does, so measure the printed board.</li>
+<li>For wide-angle and fisheye lenses (about 120 degrees or more), use OpenCV's <code>cv2.fisheye</code> model instead.</li>
+<li>This toolkit calibrates a single camera. Stereo, hand-eye and camera-IMU calibration are the natural next steps.</li>
+</ul>
+<p>The complete reference is on GitHub: <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/theory.md">in-depth theory</a> and the <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/troubleshooting.md">troubleshooting table</a>.</p>
+<div class="btns"><a class="btn p" href="https://github.com/Vihaan30g/webcam-calibration-opencv">Get the code on GitHub</a></div>
+</main>
+<footer>Written by Vihaan Gupta &middot; <a href="https://github.com/Vihaan30g">GitHub</a> &middot; <a href="mailto:vihaan30g@gmail.com">vihaan30g@gmail.com</a></footer>
+
+<script>
+document.querySelectorAll('.cb').forEach(function(b){
+  var btn=document.createElement('button');btn.textContent='Copy';
+  btn.onclick=function(){
+    var t=b.querySelector('pre').innerText;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy'},1500)}).catch(function(){btn.textContent='Press Ctrl+C'});
+  };
+  b.appendChild(btn);
+});
+</script>
+</body>
+</html>
