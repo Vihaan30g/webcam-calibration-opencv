@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webcam Calibration with OpenCV and ChArUco | Vihaan Gupta</title>
+<meta name="description" content="A complete toolkit to calibrate any webcam with OpenCV and a ChArUco board in about 15 minutes: board generation, guided capture, calibration, validation and undistortion tools.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--soft:#f6f8fa;--text:#1f2933;--muted:#5b6770;--line:#e1e5ea;--accent:#1d4ed8;--code:#0f172a;--codetext:#e2e8f0}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.7;font-size:17px}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line)}
+.bar{max-width:900px;margin:auto;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bar a{color:var(--text);text-decoration:none;font-weight:600;font-size:15px}
+.bar a:hover{color:var(--accent)}
+main{max-width:900px;margin:auto;padding:32px 20px 60px}
+h1{font-size:2.1rem;line-height:1.25;margin:.2em 0}
+h2{font-size:1.5rem;margin:2.4em 0 .6em;padding-bottom:.3em;border-bottom:1px solid var(--line)}
+h3{font-size:1.15rem;margin:1.6em 0 .4em}
+p{margin:.6em 0}
+p.lead{color:var(--muted);font-size:1.1rem}
+.meta{color:var(--muted);font-size:14px}
+a{color:var(--accent)}
+code{font-family:"JetBrains Mono",Consolas,monospace;font-size:.88em;background:var(--soft);border:1px solid var(--line);padding:1px 5px;border-radius:4px}
+.cb{position:relative;margin:14px 0}
+pre{margin:0;background:var(--code);color:var(--codetext);padding:16px 18px;border-radius:8px;overflow-x:auto;font-family:"JetBrains Mono",Consolas,monospace;font-size:14px;line-height:1.55}
+pre.tree{background:var(--soft);color:var(--text);border:1px solid var(--line);font-size:13px}
+.cb button{position:absolute;top:8px;right:8px;background:#334155;color:#e2e8f0;border:0;border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer}
+.cb button:hover{background:#475569}
+.note,.warn{padding:12px 16px;border-radius:6px;margin:16px 0;border-left:4px solid var(--accent);background:#eff4ff}
+.warn{border-color:#b45309;background:#fff7ed}
+table{border-collapse:collapse;width:100%;font-size:15px;margin:14px 0;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+td.q-ex{background:#ecfdf3}td.q-good{background:#f0fdf4}td.q-ok{background:#fffbeb}td.q-bad{background:#fef2f2}
+nav.toc{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:14px 22px;margin:22px 0}
+nav.toc ol{margin:6px 0 0;padding-left:20px;columns:2;column-gap:32px}
+@media(max-width:640px){nav.toc ol{columns:1}}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.btn{display:inline-block;padding:8px 16px;border-radius:6px;font-weight:600;font-size:15px;text-decoration:none;border:1px solid var(--accent);background:var(--accent);color:#fff}
+.btn:hover{background:#1e40af}
+.btn.alt{background:#fff;color:var(--accent)}
+.btn.alt:hover{background:#eff4ff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+.stat{border:1px solid var(--line);border-radius:8px;padding:12px 10px;text-align:center;background:var(--soft)}
+.stat b{display:block;font-size:1.45rem;line-height:1.2;color:var(--accent)}
+.stat span{font-size:13px;color:var(--muted);line-height:1.3;display:block;margin-top:2px}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+@media(max-width:640px){.feat{grid-template-columns:1fr}}
+.feat div{border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:15px;line-height:1.5}
+.feat b{display:block;margin-bottom:2px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0;counter-reset:s}
+@media(max-width:700px){.steps{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.steps{grid-template-columns:1fr}}
+.steps a{counter-increment:s;display:block;border:1px solid var(--line);border-radius:8px;padding:12px 14px;text-decoration:none;color:var(--text);transition:border-color .15s,box-shadow .15s}
+.steps a:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(29,78,216,.12)}
+.steps a::before{content:"Step " counter(s);display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+.steps strong{display:block;font-size:15px}
+.steps small{color:var(--muted);font-size:13px;line-height:1.4;display:block}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}
+@media(max-width:800px){.split{grid-template-columns:1fr}}
+.fig{margin:14px 0;border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px;text-align:center}
+.fig img{display:block;max-width:100%;height:auto;margin:auto;border-radius:4px;cursor:zoom-in}
+.fig figcaption{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+ul.tight{margin:.4em 0;padding-left:20px}ul.tight li{margin:4px 0}
+.keys{font-family:"JetBrains Mono",Consolas,monospace;font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 6px;background:#fff}
+#lb{position:fixed;inset:0;background:rgba(15,23,42,.88);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;cursor:zoom-out}
+#lb img{max-width:100%;max-height:100%;background:#fff;border-radius:6px}
+footer{border-top:1px solid var(--line);padding:24px 20px;text-align:center;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <a href="https://vihaan30g.github.io/">&larr; All Projects</a>
+  <a href="https://github.com/Vihaan30g">GitHub</a>
+</div></header>
+
+<main>
+<p class="meta">Computer Vision &middot; Camera Calibration &middot; OpenCV &middot; ChArUco &middot; Python &middot; Last updated: October 2026</p>
+<h1>Webcam Calibration with OpenCV and ChArUco</h1>
+<p class="lead">A ready-to-use toolkit that calibrates any webcam in about 15 minutes. Clone it, edit one config file, print a board, capture images and calibrate.</p>
+
+<div class="btns">
+  <a class="btn" href="https://github.com/Vihaan30g/webcam-calibration-opencv">View repository on GitHub</a>
+  <a class="btn alt" href="#workflow">See the workflow</a>
+</div>
+
+<nav class="toc"><strong>Contents</strong>
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#why">Why calibrate a camera?</a></li>
+<li><a href="#charuco">The ChArUco board</a></li>
+<li><a href="#workflow">The workflow</a></li>
+<li><a href="#guide">Step-by-step guide</a></li>
+<li><a href="#code">Using the result in your code</a></li>
+<li><a href="#structure">Project structure</a></li>
+<li><a href="#more">Requirements and more</a></li>
+</ol></nav>
+
+<h2 id="overview">1. Overview</h2>
+<p>Camera calibration normally means piecing together scripts, guessing board sizes and decoding error numbers. This project packages the whole process into one coherent tool. A single configuration file drives every script, from generating a print-ready board to undistorting a live camera feed.</p>
+<div class="feat">
+<div><b>One config file</b>Camera, resolution and board geometry are set once in <code>config.py</code>.</div>
+<div><b>Print-ready board</b>Generates the board as PNG and PDF at the exact physical size.</div>
+<div><b>Guided live capture</b>Real-time corner detection with quality gating, so only usable images are saved.</div>
+<div><b>Clear quality report</b>Reprojection error, per-image outliers and visual validation.</div>
+<div><b>Ready-made tools</b>Undistort a live camera, single images, whole folders or videos.</div>
+<div><b>Cross-platform</b>Works on Linux, Windows and macOS (Linux tested most).</div>
+</div>
+<p>For the underlying maths, the repository includes a <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/theory.md">theory guide</a> covering the camera model, distortion and how calibration works, and a <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/troubleshooting.md">troubleshooting guide</a>.</p>
+
+<h2 id="why">2. Why calibrate a camera?</h2>
+<p>Every real lens bends light slightly, so straight lines in the world appear curved in the image, most visibly near the edges. On top of that, an image alone does not say how far the camera's pixels are from its optical centre or what its focal length is. Both matter whenever software has to measure or reason about the real world from a picture.</p>
+<p>Calibration estimates two things:</p>
+<ul class="tight">
+<li><strong>Intrinsic matrix <code>K</code>:</strong> the focal length and optical centre of the camera, in pixels.</li>
+<li><strong>Distortion coefficients:</strong> how the lens bends straight lines, stored as <code>[k1, k2, p1, p2, k3]</code>.</li>
+</ul>
+<p>With these, any image from that camera can be corrected so that straight lines look straight again. This is a basic step for robotics, 3D reconstruction, SLAM, augmented reality and any task that measures distances or angles from images.</p>
+<figure class="fig"><img src="assets/images.jpeg" loading="lazy" alt="The same scene before and after camera calibration"><figcaption>The same scene before and after calibration. Straight edges that curve in the original image are straight in the corrected one.</figcaption></figure>
+
+<h2 id="charuco">3. The ChArUco board</h2>
+<p>Calibration needs a target with a precisely known pattern. This project uses a <strong>ChArUco board</strong>, which combines a checkerboard with ArUco markers. The checkerboard corners give very precise points, while each marker carries a unique ID, so the software always knows which corner it is looking at.</p>
+<div class="split">
+<div>
+<p>That combination has practical benefits over a plain checkerboard:</p>
+<ul class="tight">
+<li>Corners can be detected even when the board is only <strong>partly visible</strong>, so images near the frame edges, where distortion is strongest, still count.</li>
+<li>Every detected corner is identified, so no extra step is needed to work out which corner is which.</li>
+<li>Poor detections can be rejected automatically, which is how the capture tool applies quality gating (at least 15 corners per saved image).</li>
+</ul>
+<p>The default board has 8 &times; 6 squares, with 30 mm squares and 22 mm markers, and the generator produces it at the exact physical size.</p>
+</div>
+<figure class="fig"><img src="assets/charuco.jpg" loading="lazy" alt="A ChArUco calibration board"><figcaption>A typical ChArUco board: a checkerboard with an ArUco marker inside each white square.</figcaption></figure>
+</div>
+
+<h2 id="workflow">4. The workflow</h2>
+<p>Six steps take you from a fresh clone to a calibrated camera. Each step is one script, and all of them read the same <code>config.py</code>.</p>
+<div class="steps">
+<a href="#s1"><strong>Configure</strong><small>Edit <code>config.py</code> for your camera and board</small></a>
+<a href="#s2"><strong>Generate the board</strong><small>Print it at actual size</small></a>
+<a href="#s3"><strong>Capture images</strong><small>25 to 40 views with live detection</small></a>
+<a href="#s4"><strong>Calibrate</strong><small>Writes the YAML and a summary</small></a>
+<a href="#s5"><strong>Validate</strong><small>Check the result visually</small></a>
+<a href="#s6"><strong>Use it</strong><small>Undistort live, images or video</small></a>
+</div>
+
+<h2 id="guide">5. Step-by-step guide</h2>
+<h3>Setup</h3>
+<div class="cb"><pre>git clone https://github.com/Vihaan30g/webcam-calibration-opencv.git
+cd webcam-calibration-opencv
+
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt</pre></div>
+<div class="warn">Install <code>opencv-contrib-python</code> (already in <code>requirements.txt</code>), not plain <code>opencv-python</code>, because the ChArUco code needs the contrib build. If plain <code>opencv-python</code> is already installed, run <code>pip uninstall opencv-python</code> first so the two do not clash.</div>
+
+<h3 id="s1">Step 1: Edit <code>config.py</code></h3>
+<table>
+<tr><th>Setting</th><th>Meaning</th></tr>
+<tr><td><code>CAMERA_INDEX</code></td><td><code>0</code> is the first camera. Try <code>1</code> or <code>2</code> for others.</td></tr>
+<tr><td><code>CAMERA_WIDTH</code> / <code>CAMERA_HEIGHT</code></td><td>Resolution to calibrate <strong>and later use</strong>. It must be supported by your camera.</td></tr>
+<tr><td><code>CAMERA_CODEC</code></td><td><code>MJPG</code> gives high resolution at 30 fps on most USB webcams.</td></tr>
+<tr><td><code>SQUARES_X</code> / <code>SQUARES_Y</code>, <code>SQUARE_LENGTH</code>, <code>MARKER_LENGTH</code></td><td>Board geometry, in metres. Defaults: 8 &times; 6 squares, 30 mm and 22 mm.</td></tr>
+</table>
+<p>On Linux, list the modes your camera supports with <code>v4l2-ctl --list-formats-ext -d /dev/video0</code>.</p>
+
+<h3 id="s2">Step 2: Generate and print the board</h3>
+<div class="cb"><pre>python3 scripts/generate_charuco.py</pre></div>
+<p>Print <code>data/boards/charuco_board.pdf</code> at <strong>100% / "Actual size"</strong>, never "fit to page". Mount it on something <strong>rigid and flat</strong>, such as foam board, glass or a clipboard. Then measure one square with a ruler. If it is not 30 mm, update <code>SQUARE_LENGTH</code> and <code>MARKER_LENGTH</code> in <code>config.py</code> to the measured values.</p>
+
+<h3 id="s3">Step 3: Capture calibration images</h3>
+<div class="cb"><pre>python3 scripts/capture_images.py</pre></div>
+<p>Press <span class="keys">s</span> to save (accepted only when 15 or more corners are detected) and <span class="keys">q</span> to quit. Aim for <strong>25 to 40 images</strong>:</p>
+<ul class="tight">
+<li>Fill every region of the frame, <strong>including the corners and edges</strong>, because distortion is strongest there.</li>
+<li>Tilt the board up to about 45 degrees in different directions.</li>
+<li>Vary the distance: near, medium and far.</li>
+<li>Hold still to avoid motion blur, and keep the lighting even.</li>
+<li>Do not change zoom or focus during the session.</li>
+</ul>
+
+<h3 id="s4">Step 4: Calibrate</h3>
+<div class="cb"><pre>python3 scripts/calibrate.py --visualize</pre></div>
+<p>This writes <code>data/calibration_results/calibration.yaml</code> and <code>calibration_summary.txt</code>. Judge the result by the RMS reprojection error:</p>
+<table>
+<tr><th>RMS reprojection error</th><th>Quality</th></tr>
+<tr><td class="q-ex">&lt; 0.5 px</td><td class="q-ex">Excellent</td></tr>
+<tr><td class="q-good">0.5 to 1.0 px</td><td class="q-good">Good</td></tr>
+<tr><td class="q-ok">1.0 to 2.0 px</td><td class="q-ok">Acceptable</td></tr>
+<tr><td class="q-bad">&gt; 2.0 px</td><td class="q-bad">Recapture</td></tr>
+</table>
+<p>If a few images show a clearly higher per-image error in the summary, delete them from <code>data/calibration_images/</code> and run the calibration again.</p>
+
+<h3 id="s5">Step 5: Validate</h3>
+<div class="cb"><pre>python3 scripts/validate_calibration.py --save</pre></div>
+<p><span class="keys">Space</span> shows the next image and <span class="keys">q</span> quits. One window shows the original on the left and the undistorted image on the right, where straight lines should now be straight. A second window shows detected corners in <strong>green</strong> and reprojected corners in <strong>red</strong>, and they should overlap.</p>
+
+<h3 id="s6">Step 6: Use the calibration</h3>
+<div class="cb"><pre># live camera, undistorted, press Space to save frames
+python3 scripts/capture_undistorted.py --output_dir path/to/output/
+
+# one image / a folder / a video file
+python3 scripts/undistort.py --image photo.png      --output_dir out/
+python3 scripts/undistort.py --images_dir raw/      --output_dir out/
+python3 scripts/undistort.py --video recording.mp4  --output_dir out/</pre></div>
+
+<h2 id="code">6. Using the result in your code</h2>
+<p>The calibration is saved as a YAML file you can load in a few lines of Python:</p>
+<div class="cb"><pre>import cv2, numpy as np, yaml
+
+with open("data/calibration_results/calibration.yaml") as f:
+    cal = yaml.safe_load(f)
+
+K    = np.array(cal["camera_matrix"]["data"]).reshape(3, 3)
+dist = np.array(cal["distortion_coefficients"]["data"]).reshape(1, -1)
+size = (cal["image_width"], cal["image_height"])
+
+new_K, roi = cv2.getOptimalNewCameraMatrix(K, dist, size, alpha=0)
+map1, map2 = cv2.initUndistortRectifyMap(K, dist, None, new_K, size, cv2.CV_16SC2)
+
+frame = cv2.imread("my_image.png")
+und   = cv2.remap(frame, map1, map2, cv2.INTER_LINEAR)
+x, y, w, h = roi
+und = und[y:y+h, x:x+w]          # crop black borders</pre></div>
+<p><code>K</code> is the 3 &times; 3 intrinsic matrix and <code>dist</code> is <code>[k1, k2, p1, p2, k3]</code> (the OpenCV "plumb bob" model). This is the same layout ROS 2 uses in <code>camera_info</code> (<code>k</code> and <code>d</code>), so the result can be used in ROS 2 pipelines directly.</p>
+<div class="warn"><strong>The calibration is only valid for the resolution it was captured at.</strong> Calibrating at 1280 &times; 960 and then running the camera at 640 &times; 480 gives wrong results. The scripts check this and stop with a clear error.</div>
+
+<h2 id="structure">7. Project structure</h2>
+<pre class="tree">webcam-calibration-opencv/
+  config.py                    single source of truth for all settings
+  requirements.txt
+  scripts/
+    generate_charuco.py        step 1  print-ready board (PNG + PDF)
+    capture_images.py          step 2  live capture with corner detection
+    calibrate.py               step 3  run calibration, write YAML
+    validate_calibration.py    step 4  visual checks
+    capture_undistorted.py     step 5a live undistorted capture
+    undistort.py               step 5b image / folder / video undistortion
+  utils/
+    camera.py                  camera opening and resolution guards
+    charuco_utils.py           board and detector setup
+  docs/
+    theory.md                  how and why calibration works
+    troubleshooting.md
+  assets/                      images used in the documentation
+  data/                        your images and results (git-ignored)</pre>
+
+<h2 id="more">8. Requirements and more</h2>
+<ul class="tight">
+<li><strong>Requirements:</strong> Python 3.8+, <code>opencv-contrib-python</code> 4.7 or newer, <code>numpy</code>, <code>PyYAML</code> and <code>Pillow</code>.</li>
+<li><strong>Reusing for another camera:</strong> edit <code>config.py</code>, empty <code>data/calibration_images/</code>, and repeat steps 3 to 6.</li>
+<li><strong>Learn more:</strong> <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/theory.md">theory guide</a> and <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/docs/troubleshooting.md">troubleshooting guide</a>.</li>
+<li><strong>License:</strong> MIT, see the <a href="https://github.com/Vihaan30g/webcam-calibration-opencv/blob/main/LICENSE">LICENSE</a> file.</li>
+</ul>
+</main>
+
+<footer>Written by Vihaan Gupta &middot; <a href="https://github.com/Vihaan30g">GitHub</a> &middot; <a href="https://github.com/Vihaan30g/webcam-calibration-opencv">This repository</a> &middot; Released under the MIT License &middot; <a href="https://www.youtube.com/@vihaan30g">YouTube</a> &middot; <a href="mailto:vihaan30g@gmail.com">vihaan30g@gmail.com</a></footer>
+
+<div id="lb"><img alt=""></div>
+<script>
+document.querySelectorAll('.cb').forEach(function(b){
+  var btn=document.createElement('button');btn.textContent='Copy';
+  btn.onclick=function(){
+    var t=b.querySelector('pre').innerText;
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy'},1500)}).catch(function(){btn.textContent='Press Ctrl+C'});
+  };
+  b.appendChild(btn);
+});
+var lb=document.getElementById('lb'),lbi=lb.querySelector('img');
+document.querySelectorAll('.fig img').forEach(function(i){
+  i.addEventListener('click',function(){lbi.src=i.src;lbi.alt=i.alt;lb.style.display='flex'});
+});
+lb.addEventListener('click',function(){lb.style.display='none'});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')lb.style.display='none'});
+</script>
+</body>
+</html>
